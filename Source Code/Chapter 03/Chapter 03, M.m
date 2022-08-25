@@ -64,3 +64,15 @@ let
 in
     Factorial   
 --------------------
+//fnFactorial2
+let
+   Factorial = 
+        (ValiedNumber as number) as number => 
+          if Number.Sign(ValiedNumber) = 1 
+          then 
+               if ValiedNumber = 0
+               then 1 
+               else ValiedNumber * @Factorial(ValiedNumber - 1)
+          else -1
+in
+    Factorial
