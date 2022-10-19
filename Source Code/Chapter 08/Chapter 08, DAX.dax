@@ -1,0 +1,54 @@
+Sales for Customers with Yearly Income Greater Than $100,000 = 
+SUMMARIZECOLUMNS(
+    'Product'[ProductKey]
+    , 'Date'[Year-Month]
+    , 'Customer'[CustomerKey]
+    , DISTINCT('Product'[ProductKey])
+    , FILTER(
+        ALLNOBLANKROW('Customer'[CustomerKey], 'Customer'[YearlyIncome])
+        , 'Customer'[YearlyIncome] >= 100000
+        )
+    , DISTINCT('Date'[Year-Month])
+    , "Sales"
+    , [Sales Amount]
+)
+--------------------
+Sales by Product Column Chart Colour =
+    var avgSales = AVERAGEX(
+                    ALL('Product'[Product])
+                    , [Sales Amount]
+                )
+    return
+    IF([Sales Amount] < avgSales, "Red")
+--------------------
+ExchKey = VALUE('Exchange Rates'[CurrencyKey] & FORMAT('Exchange Rates'[Date], "yyyymmdd"))
+--------------------
+ExchKey = VALUE('Internet Sales'[CurrencyKey] & 'Internet Sales'[OrderDateKey])
+--------------------
+Internet Sales in USD =
+    SUMX(
+        RELATEDTABLE('Exchange Rates')
+        , [Internet Sales] * 'Exchange Rates'[AverageRate]
+    )
+--------------------	
+Internet Sales USD =
+SUMX(
+    NATURALINNERJOIN (
+            SELECTCOLUMNS(
+                'Internet Sales'
+, "CurrencyKeyJoin", 'Internet Sales'[CurrencyKey] * 1
+                , "DateJoin", 'Internet Sales'[OrderDate] + 0
+                , "ProductKey", 'Internet Sales'[ProductKey]
+                , "SalesOrderLineNumber", 'Internet Sales'[SalesOrderLineNumber]
+                , "SalesOrderNumber", 'Internet Sales'[SalesOrderNumber]
+                , "SalesAmount", 'Internet Sales'[SalesAmount]
+                )
+            , SELECTCOLUMNS (
+                'Exchange Rates'
+                , "CurrencyKeyJoin", 'Exchange Rates'[CurrencyKey] * 1
+                , "DateJoin", 'Exchange Rates'[Date] + 0
+                , "AverageRate", 'Exchange Rates'[AverageRate]
+            )
+        )
+, [AverageRate] * [SalesAmount]
+)
