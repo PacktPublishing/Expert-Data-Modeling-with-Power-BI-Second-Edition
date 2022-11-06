@@ -1,0 +1,72 @@
+SalesReasonsID = 'Internet Sales'[SalesOrderNumber] & 'Internet Sales'[SalesOrderLineNumber]
+--------------------
+SalesReasonsID = 'Internet Sales Reasons'[SalesOrderNumber] & 'Internet Sales Reasons'[SalesOrderLineNumber]
+--------------------
+Quantity Sold = SUM('Internet Sales'[OrderQuantity])
+--------------------
+Sales Reasons Count = COUNTROWS('Internet Sales Reasons')
+--------------------
+Internet Sales Bidirectional =
+    CALCULATE(
+        [Internet Sales]
+        , CROSSFILTER(Customer[CustomerKey], 'Internet Sales'[CustomerKey], Both)
+        , CROSSFILTER('Product'[ProductKey], 'Internet Sales'[ProductKey], Both)
+        )
+--------------------		
+Internet Sales Due =
+    CALCULATE([Internet Sales]
+        , USERELATIONSHIP('Internet Sales'[DueDateKey], 'Date'[DateKey])
+    )
+--------------------	
+Internet Sales Shipped =
+    CALCULATE([Internet Sales]
+        , USERELATIONSHIP('Internet Sales'[ShipDateKey], 'Date'[DateKey])
+    )
+--------------------	
+Price Range =
+    CALCULATE(
+        VALUES('Unit Price Ranges'[Price Range])
+        , FILTER('Unit Price Ranges'
+            , 'Unit Price Ranges'[From] < 'Internet Sales'[UnitPrice]
+                && 'Unit Price Ranges'[To] >= 'Internet Sales'[UnitPrice]
+            )
+    )
+--------------------	
+Sales LM =
+    CALCULATE([Internet Sales]
+        , DATEADD('Date'[Full Date], -1, MONTH)
+        )
+--------------------		
+Sales MoM% = DIVIDE([Internet Sales] - [Sales LM], [Sales LM])
+--------------------
+CONVERT([Sales MoM%] * 10, INTEGER)/10
+--------------------
+Sales MoM% Colour =
+var percentRound = CONVERT([Sales MoM%] * 10, INTEGER)/10
+var checkMinValue = IF(percentRound < 0.1, 0.1, percentRound)
+var checkMaxValue = IF(checkMinValue > 1, 1, checkMinValue)
+return
+CALCULATE(
+    VALUES(ConfigColour[ColourHex])
+    , FILTER( ConfigColour
+        , 'ConfigColour'[Range%] = checkMaxValue
+        )
+    )
+--------------------	
+Sales MoM% Description =
+var percentRound = CONVERT([Sales MoM%] * 10, INTEGER)/10
+var checkMinValue = IF(percentRound < 0.1, 0.1, percentRound)
+var checkMaxValue = IF(checkMinValue > 1, 1, checkMinValue)
+return
+CALCULATE(
+    VALUES(ConfigColour[Status])
+    , FILTER( ConfigColour
+        , 'ConfigColour'[Range%] = checkMaxValue
+        )
+    )
+--------------------	
+Gross Profit = 'Internet Sales'[SalesAmount] - 'Internet Sales'[TotalProductCost]
+--------------------
+Total Gross Profit with Calc Column = SUM('Internet Sales'[Gross Profit])
+--------------------
+Total Gross Profit Measure = SUMX('Internet Sales', 'Internet Sales'[SalesAmount] - 'Internet Sales'[TotalProductCost])
