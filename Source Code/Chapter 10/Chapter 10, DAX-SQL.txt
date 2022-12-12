@@ -1,0 +1,141 @@
+Sales Agg = SUM('Internet Sales Aggregated'[Sales])
+--------------------
+Internet Sales = SUM('Internet Sales'[SalesAmount])
+--------------------
+Internet Sales Total =
+    IF(
+        OR(ISFILTERED('Product'), ISFILTERED('Customer'))
+        , [Internet Sales]
+        , [Sales Agg]
+        )
+--------------------		
+Test Grain Selection Control =
+     IF(
+        OR(ISFILTERED('Product'), ISFILTERED('Customer'))
+        , "Internet Sales"
+        , "Internet Sales Aggregated"
+        )
+--------------------		
+New OrderDateKey = (CONVERT(Integer, ([OrderDateKey]/100)) * 100) + 1
+--------------------
+Table.ReplaceValue(
+            #"Removed Other Columns"
+            , each [OrderDateKey]
+            , each (Int64.From([OrderDateKey]/100) * 100) + 1
+            , Replacer.ReplaceValue
+            , {"OrderDateKey"}
+        )
+--------------------		
+Sales Year Month = SUM('Internet Sales Aggregated Year Month'[Sales])
+--------------------
+Internet Sales Agg =
+    IF(
+ISFILTERED('Product') || 
+ISFILTERED('Customer') || 
+ISFILTERED('Date'[Full Date])
+      , [Internet Sales]
+      , [Sales Year Month]
+    )
+--------------------	
+Internet Sales Agg Test =
+    IF(
+ISFILTERED('Product') || 
+ISFILTERED('Customer') || 
+ISFILTERED('Date'[Full Date])
+      , "Internet Sales"
+      , "Internet Sales Aggregated"
+    )
+--------------------
+---------SQL--------	
+CREATE VIEW vw_Sales_Agg AS
+SELECT dp.ProductKey
+       , dd.CalendarYear
+       , dd.EnglishMonthName
+       , COUNT(1) Sales_Count
+       , SUM(fis.SalesAmount)   AS Sales_Sum
+       , SUM(fis.OrderQuantity) AS OrderQty_Sum
+       , SUM(fis.TaxAmt)        AS Tax_Sum
+       , SUM(fis.Freight)       AS Freight_Sum
+FROM   FactInternetSales fis
+       LEFT JOIN DimDate dd
+              ON dd.DateKey = fis.OrderDateKey
+       LEFT JOIN DimProduct dp
+              ON fis.ProductKey = dp.ProductKey
+GROUP BY dp.ProductKey
+       , dd.CalendarYear
+       , dd.EnglishMonthName
+--------------------	   
+Internet Sales = SUM(FactInternetSales[SalesAmount])
+--------------------
+Internet Sales Due = 
+    CALCULATE(
+        [Internet Sales]
+        , USERELATIONSHIP(FactInternetSales[DueDateKey], DimDate[DateKey])
+        )
+--------------------		
+Path = PATH('Parent Child'[ID], 'Parent Child'[ParentID])
+--------------------
+Path Length = PATHLENGTH('Parent Child'[Path])
+--------------------
+Level 2 Name =
+    LOOKUPVALUE(
+        'Parent Child'[Name]
+        , 'Parent Child'[ID]
+        , PATHITEM('Parent Child'[Path], 2, INTEGER)
+    )
+--------------------	
+Level 1 Name =
+    LOOKUPVALUE(
+        'Parent Child'[Name]
+        , 'Parent Child'[ID]
+        , PATHITEM('Parent Child'[Path], 1, INTEGER)
+        )
+--------------------		
+Level 2 Name =
+    IF(
+        'Parent Child'[Path Length] >=2
+        , LOOKUPVALUE(
+            'Parent Child'[Name]
+            , 'Parent Child'[ID]
+            , PATHITEM('Parent Child'[Path], 2, INTEGER)
+        ) //End LOOKUPVALUE
+        , 'Parent Child'[Level 1 Name]
+    ) // End IF
+--------------------	
+Level 3 Name =
+    IF(
+        'Parent Child'[Path Length] >=3
+        , LOOKUPVALUE(
+            'Parent Child'[Name]
+            , 'Parent Child'[ID]
+            , PATHITEM('Parent Child'[Path], 3, INTEGER)
+        ) //End LOOKUPVALUE
+        , 'Parent Child'[Level 2 Name]
+    ) // End IF
+--------------------
+Level 4 Name =
+    IF(
+        'Parent Child'[Path Length] >=4
+        , LOOKUPVALUE(
+            'Parent Child'[Name]
+            , 'Parent Child'[ID]
+            , PATHITEM('Parent Child'[Path], 4, INTEGER)
+        ) //End LOOKUPVALUE
+        , 'Parent Child'[Level 3 Name]
+    ) // End IF
+--------------------	
+Reseller Sales by Order Date = SUM(Reseller_Sales[SalesAmount])
+--------------------
+Reseller Sales by Due Date =
+    CALCULATE([Reseller Sales by Order Date]
+        , USERELATIONSHIP(Dates[DateKey], Reseller_Sales[DueDateKey])
+    )
+--------------------	
+Reseller Sales by Ship Date =
+    CALCULATE([Reseller Sales by Order Date]
+        , USERELATIONSHIP(Dates[DateKey], Reseller_Sales[ShipDateKey])
+    )
+--------------------	
+Total Sales = SUM('Internet Sales'[SalesAmount])
+--------------------
+Quantity Ordered = SUM('Internet Sales'[OrderQuantity])
