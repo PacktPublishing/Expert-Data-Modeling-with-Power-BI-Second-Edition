@@ -1,0 +1,17 @@
+EmployeePath = PATH(Employee[EmployeeKey], Employee[ParentEmployeeKey])
+--------------------
+CALCULATETABLE(
+    VALUES(Employee[EmployeeKey])
+    , FILTER(Employee, Employee[EmailAddress] = USERPRINCIPALNAME())
+    , FILTER(Employee, Employee[Status] = "Current")
+)
+--------------------
+VAR _key = CALCULATETABLE (
+    VALUES ( Employee[EmployeeKey] ),
+    FILTER ( Employee, Employee[EmailAddress] = USERPRINCIPALNAME()),
+    FILTER ( Employee, Employee[Status] = "Current" )
+)
+RETURN
+PATHCONTAINS (
+            Employee[EmployeePath], _key
+)
