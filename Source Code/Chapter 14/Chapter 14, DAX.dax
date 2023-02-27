@@ -1,0 +1,35 @@
+Unit Price Range Band =
+    SWITCH(
+              TRUE()
+            , 'FactInternetSales'[Unit Price] <= 100, "Low"
+            , AND('FactInternetSales'[Unit Price] >= 101, 'FactInternetSales'[Unit Price] <= 1000), "Medium"
+            , AND('FactInternetSales'[Unit Price] >= 1001, 'FactInternetSales'[Unit Price] <= 3000), "High"
+            , "Very High"
+    )
+--------------------	
+UnitPriceRangeBandSort = 
+    SWITCH(
+              TRUE()
+            , 'FactInternetSales'[UnitPrice] <= 100, 1
+            , AND('FactInternetSales'[UnitPrice] >= 101, 'FactInternetSales'[UnitPrice] <= 1000), 2
+            , AND('FactInternetSales'[UnitPrice] >= 1001, 'FactInternetSales'[UnitPrice] <= 3000), 3
+            , 4
+    )
+--------------------	
+[EmailAddress] = USERPRINCIPALNAME() 
+--------------------
+VAR __SalesReps =  
+CALCULATETABLE(
+    VALUES(DimEmployee[SalesTerritoryKey]),
+    TREATAS( {USERPRINCIPALNAME()}, DimEmployee[EmailAddress] )
+)
+RETURN
+DimSalesTerritory[SalesT0erritoryKey] in __SalesReps
+--------------------
+VAR __SalesReps =  
+CALCULATETABLE(
+    VALUES(DimEmployee[EmployeeKey]),
+    TREATAS( {USERPRINCIPALNAME()}, DimEmployee[EmailAddress] )
+)
+RETURN
+FactResellerSales[EmployeeKey] in __SalesReps
