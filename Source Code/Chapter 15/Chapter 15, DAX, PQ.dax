@@ -1,0 +1,195 @@
+Internet Sales Field Name = NAMEOF([Internet Sales])
+--------------------
+Internet Sales Variance PoP = {
+    ("Internet Sales MoM Variance", NAMEOF('Internet Sales'[Internet Sales MoM Variance]), 0),
+    ("Internet Sales YoY Variance", NAMEOF('Internet Sales'[Internet Sales YoY Variance]), 1),
+    ("Internet Sales LY", NAMEOF([Internet Sales LY]), 2)
+}
+--------------------
+Date Fields = {
+    ("Year", NAMEOF('Date'[Year]), 0, "Year-Month"),
+    ("Month", NAMEOF('Date'[Month]), 1, "Year-Month"),
+    ("Full Date", NAMEOF('Date'[Full Date]), 2, "Date")
+}
+
+---------Power Query-----------
+Int64.From(Date.ToText(Date.From(DateTime.LocalNow()), "yyyy0101")) - 20000
+-------------------------------
+
+--------------------
+NETWORKDAYS(<start_date>, <end_date>[, <weekend>, <holidays>])
+--------------------
+Is Public Holiday = 
+    AND(
+        DimDate[EnglishMonthName] = "January"
+        , AND(
+            DimDate[DayNumberOfMonth] >=1
+            , DimDate[DayNumberOfMonth] <= 5
+            )
+        )
+--------------------		
+Working Days = 
+NETWORKDAYS(
+        FIRSTDATE(DimDate[FullDateAlternateKey])
+        , LASTDATE(DimDate[FullDateAlternateKey])
+        , 1
+        , CALCULATETABLE (
+            VALUES (DimDate[FullDateAlternateKey])
+            , DimDate[Is Public Holiday] = TRUE
+        )
+    )
+--------------------	
+EVALUATEANDLOG(<Value>, [Label], [MaxRows])
+--------------------
+ NETWORKDAYS(
+        EVALUATEANDLOG(FIRSTDATE(DimDate[FullDateAlternateKey]), "StartDate")
+        , EVALUATEANDLOG(LASTDATE(DimDate[FullDateAlternateKey]), "EndDate")
+        , 1
+        , EVALUATEANDLOG(SUMMARIZECOLUMNS(
+            DimDate[FullDateAlternateKey]
+            , TREATAS({TRUE}, DimDate[Is Public Holiday])
+        ), "VirtualTable", 10)
+    )
+--------------------	
+PARTITIONBY ( <partitionBy_columnName>[, partitionBy_columnName [, …] ] )
+--------------------
+ORDERBY ( <orderBy_columnName>[, <order>][, orderBy_columnName [, <order>]] [, …] )
+--------------------
+INDEX(<position>[, <relation>][, <orderBy>][, <blanks>][, <partitionBy>])
+--------------------
+Index, Best Selling Product = 
+VAR __ProductSale = 
+    ADDCOLUMNS (
+        SUMMARIZE (FactInternetSales
+, DimProduct[Product])
+        	, "ProductSales", [Sales]
+    )
+VAR __BestSeller = 
+    INDEX(1
+        , __ProductSale
+        , ORDERBY([ProductSales], DESC)
+    )
+RETURN
+    CONCATENATEX(
+        __BestSeller
+        ,  'DimProduct'[Product] & ": " & FORMAT([ProductSales], "$#,#.#")
+        )
+--------------------		
+Index, % of Best Selling Month = 
+VAR __YearMonthSales = 
+	FILTER(
+        ADDCOLUMNS(
+            ALL(
+                DimDate[Year]
+                , DimDate[Month]
+                , DimDate[MonthOrder]
+                )
+            , "__Sales", [Sales])
+        , [__Sales] > 0)
+VAR __BestSellingMonthSales = 
+	INDEX(
+		1
+		, __YearMonthSales
+		, ORDERBY([__Sales], DESC)
+		, PARTITIONBY(DimDate[Year])
+		)
+VAR __Result =    	
+       DIVIDE(
+       	[Sales]
+       	, MAXX(
+       		__BestSellingMonthSales
+       		, [__Sales]
+       		)
+        )
+RETURN
+    IF(HASONEVALUE(DimDate[Year]), __Result, BLANK())
+--------------------	
+Index, % of Best Selling Month EVALUATEANDLOG = 
+VAR __YearMonthSales = 
+    EVALUATEANDLOG(
+        FILTER(
+            ADDCOLUMNS(
+                ALL(
+                    DimDate[Year]
+                    , DimDate[Month]
+                    , DimDate[MonthOrder]
+                    )
+                , "__Sales", [Sales])
+            , [__Sales] > 0)
+    , "__YearMonthSales")
+VAR __BestSellingMonthSales = 
+	EVALUATEANDLOG(
+        INDEX(
+            1
+            , __YearMonthSales
+            , ORDERBY([__Sales], DESC)
+            , PARTITIONBY(DimDate[Year])
+            )
+    , "__BestSellingMonthSales")
+VAR __Result =    	
+    EVALUATEANDLOG(   
+       DIVIDE(
+       	[Sales]
+       	, MAXX(
+       		__BestSellingMonthSales
+       		, [__Sales]
+       		)
+        )
+    , "__Result")
+RETURN
+    IF(HASONEVALUE(DimDate[Year]), __Result, BLANK())
+--------------------	
+OFFSET ( <delta>[, <relation>][, <orderBy>][, <blanks>][, <partitionBy>] )
+--------------------
+Offset, Previous Month Sales = 
+CALCULATE(
+    [Sales]
+    , OFFSET(
+        -1
+        , ORDERBY(DimDate[Year], ASC, DimDate[MonthOrder], ASC, DimDate[Month])
+        )
+)
+--------------------
+WINDOW ( from[, from_type], to[, to_type][, <relation>][, <orderBy>][, <blanks>][, <partitionBy>] )
+--------------------
+Window, RT Sales by Product Category and Subcategory = 
+CALCULATE(
+    [Sales]
+    , WINDOW(
+        1, ABS
+        , 0, REL
+        , ORDERBY(DimProduct[Product Category], ASC, DimProduct[Product Subcategory], ASC)
+    )
+)
+--------------------
+Window, RT Sales by Product Category and Subcategory Partitioned = 
+CALCULATE(
+    [Sales]
+    , WINDOW(
+        1, ABS
+        , 0, REL
+        , ORDERBY(DimProduct[Product Category], ASC, DimProduct[Product Subcategory], ASC)
+        , PARTITIONBY(DimProduct[Product Category])
+        )
+)
+--------------------
+Window, Sales YTD = 
+CALCULATE(
+    [Sales]
+    , WINDOW(
+        1, ABS
+        , 0, REL
+   , ORDERBY( DimDate[Year], ASC, DimDate[MonthOrder], ASC, DimDate[Month])
+   , PARTITIONBY(DimDate[Year])
+        )
+    )
+--------------------	
+Window, 3M Moving Avg = 
+AVERAGEX(
+    WINDOW(
+        -2, REL
+        , 0, REL
+        , ORDERBY(DimDate[Year], ASC, DimDate[MonthOrder], ASC, DimDate[Month])
+    )
+    , [Sales]
+)
