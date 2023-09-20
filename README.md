@@ -1,3 +1,11 @@
+
+### [Packt Conference : Put Generative AI to work on Oct 11-13 (Virtual)](https://packt.link/JGIEY)
+
+<b><p align='center'>[![Packt Conference](https://hub.packtpub.com/wp-content/uploads/2023/08/put-generative-ai-to-work-packt.png)](https://packt.link/JGIEY)</p></b> 
+3 Days, 20+ AI Experts, 25+ Workshops and Power Talks 
+
+Code: <b>USD75OFF</b>
+
 # Expert-Data-Modeling-with-Power-BI-Second-Edition
 This is the code repository for [Expert Data Modeling with Power BI Second Edition](https://www.packtpub.com/product/expert-data-modeling-with-power-bi-second-edition/9781803246246), published by Packt.
 
